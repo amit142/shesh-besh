@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Test</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        #output { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            min-height: 100px; 
+            max-height: 400px; 
+            overflow-y: auto;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .buttons { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Firestore Test Page</h1>
+    
+    <div class="buttons">
+        <button id="initFirebase">1. Initialize Firebase</button>
+        <button id="testConnection" disabled>2. Test Connection</button>
+        <button id="createTestData" disabled>3. Create Test Data</button>
+        <button id="listCollections" disabled>4. List Collections</button>
+        <button id="listTournaments" disabled>5. List Tournaments</button>
+        <button id="clearOutput">Clear Output</button>
+    </div>
+    
+    <div id="output">Click the buttons in order to test Firestore operations...</div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDzZU5RfIthZeJ-A2w7TAaTKKbFKyo3-qk",
+            authDomain: "shesh-besh-f9c84.firebaseapp.com",
+            projectId: "shesh-besh-f9c84",
+            storageBucket: "shesh-besh-f9c84.firebasestorage.app",
+            messagingSenderId: "812649304493",
+            appId: "1:812649304493:web:d001a9d740563b72c3d124"
+        };
+
+        // DOM elements
+        const output = document.getElementById('output');
+        let db, auth; // Will be initialized after Firebase init
+            
+        // Helper function to log messages
+        function log(message, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.prepend(p);
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        // Enable/disable buttons
+        function setButtonsState(step) {
+            const buttons = {
+                initFirebase: document.getElementById('initFirebase'),
+                testConnection: document.getElementById('testConnection'),
+                createTestData: document.getElementById('createTestData'),
+                listCollections: document.getElementById('listCollections'),
+                listTournaments: document.getElementById('listTournaments')
+            };
+
+            // Reset all buttons
+            Object.values(buttons).forEach(btn => {
+                if (btn) btn.disabled = true;
+            });
+
+            // Enable buttons up to the current step
+            if (step >= 1) buttons.initFirebase.disabled = false;
+            if (step >= 2) buttons.testConnection.disabled = false;
+            if (step >= 3) buttons.createTestData.disabled = false;
+            if (step >= 4) buttons.listCollections.disabled = false;
+            if (step >= 5) buttons.listTournaments.disabled = false;
+        }
+
+        // Initialize Firebase
+        document.getElementById('initFirebase').addEventListener('click', async () => {
+            try {
+                log('Initializing Firebase...');
+                const app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+                
+                // Enable offline persistence
+                await firebase.firestore().enablePersistence()
+                    .catch(err => {
+                        if (err.code === 'failed-precondition') {
+                            log('Multiple tabs open, persistence can only be enabled in one tab at a time.', 'error');
+                        } else if (err.code === 'unimplemented') {
+                            log('The current browser does not support offline persistence.', 'error');
+                        }
+                    });
+                
+                log('✅ Firebase initialized successfully!', 'success');
+                setButtonsState(2);
+                
+            } catch (error) {
+                log(`❌ Firebase init error: ${error.message}`, 'error');
+            }
+        });
+
+        // Test Firestore connection
+        document.getElementById('testConnection').addEventListener('click', async () => {
+            if (!db) {
+                log('Please initialize Firebase first', 'error');
+                return;
+            }
+            
+            try {
+                log('Testing Firestore connection...');
+                const testDoc = db.collection('test').doc('connection');
+                await testDoc.set({
+                    message: 'Test connection successful',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                log('✅ Firestore connection successful!', 'success');
+                setButtonsState(3);
+            } catch (error) {
+                log(`❌ Connection error: ${error.message}`, 'error');
+            }
+        });
+
+        // Create test data
+        document.getElementById('createTestData').addEventListener('click', async () => {
+            if (!db || !auth) {
+                log('Please initialize Firebase first', 'error');
+                return;
+            }
+            
+            try {
+                log('Creating test data...');
+                
+                // Sign in anonymously
+                const userCredential = await auth.signInAnonymously();
+                const userId = userCredential.user.uid;
+                log(`✅ Signed in as anonymous user: ${userId}`);
+                
+                // Create test tournament
+                const tournamentCode = 'TEST' + Math.random().toString(36).substr(2, 4).toUpperCase();
+                const tournamentData = {
+                    name: `Test Tournament ${tournamentCode}`,
+                    status: 'active',
+                    createdBy: userId,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    maxParticipants: 4,
+                    participants: [userId],
+                    code: tournamentCode
+                };
+                
+                const tournamentRef = await db.collection('tournaments').add(tournamentData);
+                log(`✅ Created test tournament: ${tournamentData.name} (ID: ${tournamentRef.id})`, 'success');
+                
+                // Create test match
+                const matchData = {
+                    tournamentId: tournamentRef.id,
+                    tournamentCode: tournamentCode,
+                    player1: userId,
+                    player1Name: 'Test Player 1',
+                    player2: null,
+                    player2Name: 'Waiting for opponent...',
+                    status: 'waiting',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    round: 1,
+                    board: 1
+                };
+                
+                const matchRef = await db.collection('matches').add(matchData);
+                log(`✅ Created test match (ID: ${matchRef.id})`, 'success');
+                
+                setButtonsState(4);
+                
+            } catch (error) {
+                log(`❌ Error creating test data: ${error.message}`, 'error');
+            }
+        });
+
+        // List collections
+        // Replace the listCollections function with this:
+
+// List collections
+document.getElementById('listCollections').addEventListener('click', async () => {
+    if (!db) {
+        log('Please initialize Firebase first', 'error');
+        return;
+    }
+    
+    try {
+        log('Fetching documents to infer collections...', 'info');
+        
+        // List known collections by checking for documents
+        const collectionsToCheck = ['tournaments', 'matches', 'users', 'test'];
+        const existingCollections = [];
+        
+        for (const collectionName of collectionsToCheck) {
+            try {
+                const snapshot = await db.collection(collectionName).limit(1).get();
+                if (!snapshot.empty) {
+                    existingCollections.push(collectionName);
+                }
+            } catch (error) {
+                // Collection might not exist or have permissions
+                log(`  - ${collectionName}: Not accessible`, 'info');
+            }
+        }
+        
+        if (existingCollections.length === 0) {
+            log('No accessible collections found', 'info');
+            return;
+        }
+        
+        log('📁 Accessible collections:', 'info');
+        existingCollections.forEach(collection => {
+            log(`- ${collection}`, 'info');
+        });
+        
+        setButtonsState(5);
+        
+    } catch (error) {
+        log(`❌ Error checking collections: ${error.message}`, 'error');
+    }
+});
+
+        // List tournaments
+        document.getElementById('listTournaments').addEventListener('click', async () => {
+            if (!db) {
+                log('Please initialize Firebase first', 'error');
+                return;
+            }
+            
+            try {
+                log('Fetching tournaments...');
+                const snapshot = await db.collection('tournaments')
+                    .orderBy('createdAt', 'desc')
+                    .limit(10)
+                    .get();
+                
+                if (snapshot.empty) {
+                    log('No tournaments found', 'info');
+                    return;
+                }
+                
+                log('🏆 Latest Tournaments:', 'info');
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.createdAt ? data.createdAt.toDate().toLocaleString() : 'Unknown date';
+                    log(`- ${data.name} (ID: ${doc.id})`, 'info');
+                    log(`  Status: ${data.status}, Created: ${date}`, 'info');
+                    log(`  Code: ${data.code}, Players: ${data.participants?.length || 0}/${data.maxParticipants}`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ Error listing tournaments: ${error.message}`, 'error');
+            }
+        });
+
+        // Clear output
+        document.getElementById('clearOutput').addEventListener('click', () => {
+            output.innerHTML = 'Output cleared. Click the buttons to test Firestore operations...';
+        });
+
+        // Initialize button states
+        setButtonsState(1);
+    </script>
+</body>
+</html>
