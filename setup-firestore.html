@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הגדרת Firestore - טורניר שש בש</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .setup-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .setup-card {
+            background: var(--ivory);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 1rem 0;
+            box-shadow: 0 8px 32px var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .setup-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--felt-green), var(--gold), var(--checker-red));
+        }
+        
+        .setup-step {
+            background: var(--felt-green);
+            color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .step-number {
+            background: var(--gold);
+            color: var(--wood-dark);
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+        
+        .code-block {
+            background: var(--wood-dark);
+            color: var(--text-light);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+        
+        .status-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .status-error {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+    </style>
+</head>
+<body class="dashboard-bg">
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle">
+        <svg class="w-6 h-6 text-white sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <svg class="w-6 h-6 text-white moon-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+    </button>
+
+    <div class="setup-container">
+        <h1 class="text-4xl font-bold text-white text-center mb-8 drop-shadow-lg">
+            🔥 הגדרת Firestore Database
+        </h1>
+
+        <!-- Connection Status -->
+        <div class="setup-card">
+            <h2 class="text-2xl font-bold mb-4" style="color: var(--wood-dark);">סטטוס החיבור</h2>
+            <div id="connection-status" class="status-indicator status-pending">
+                <div class="dice" style="width: 16px; height: 16px;">⚀</div>
+                <span>בודק חיבור...</span>
+            </div>
+            <div id="setup-status"></div>
+        </div>
+
+        <!-- Setup Steps -->
+        <div class="setup-card">
+            <h2 class="text-2xl font-bold mb-4" style="color: var(--wood-dark);">שלבי ההגדרה</h2>
+            
+            <div class="setup-step">
+                <div class="flex items-center mb-3">
+                    <span class="step-number">1</span>
+                    <h3 class="text-xl font-bold">הגדרת כללי Firestore</h3>
+                </div>
+                <p class="mb-3">עבור ל-Firebase Console ועדכן את כללי Firestore:</p>
+                <div class="code-block">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to all users (for testing)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+                </div>
+                <p class="text-sm opacity-90">⚠️ זהו כלל פתוח לבדיקות בלבד. בייצור יש להגדיר כללים מחמירים יותר.</p>
+            </div>
+
+            <div class="setup-step">
+                <div class="flex items-center mb-3">
+                    <span class="step-number">2</span>
+                    <h3 class="text-xl font-bold">יצירת אוספים (Collections)</h3>
+                </div>
+                <p class="mb-3">האוספים הבאים ייווצרו אוטומטית:</p>
+                <ul class="list-disc list-inside space-y-1 opacity-90">
+                    <li><code>users</code> - פרטי המשתמשים</li>
+                    <li><code>tournaments</code> - נתוני הטורנירים</li>
+                    <li><code>matches</code> - תוצאות המשחקים</li>
+                </ul>
+            </div>
+
+            <div class="setup-step">
+                <div class="flex items-center mb-3">
+                    <span class="step-number">3</span>
+                    <h3 class="text-xl font-bold">יצירת נתוני בדיקה</h3>
+                </div>
+                <p class="mb-3">לחץ על הכפתור ליצירת נתוני בדיקה עם 8 שחקנים:</p>
+                <div class="flex gap-3">
+                    <button id="test-connection" class="btn-secondary">בדוק חיבור</button>
+                    <button id="create-test-data" class="btn-primary">צור נתוני בדיקה</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Data Overview -->
+        <div class="setup-card">
+            <h2 class="text-2xl font-bold mb-4" style="color: var(--wood-dark);">נתוני הבדיקה</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center p-4 bg-felt-green rounded-lg">
+                    <div class="text-3xl font-bold text-gold">8</div>
+                    <div class="text-white">שחקנים</div>
+                </div>
+                <div class="text-center p-4 bg-felt-green rounded-lg">
+                    <div class="text-3xl font-bold text-gold">3</div>
+                    <div class="text-white">טורנירים</div>
+                </div>
+                <div class="text-center p-4 bg-felt-green rounded-lg">
+                    <div class="text-3xl font-bold text-gold">12</div>
+                    <div class="text-white">משחקים</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center mt-8">
+            <div class="flex gap-4 justify-center flex-wrap">
+                <a href="index.html" class="btn-secondary">🏠 דף הבית</a>
+                <a href="app.html" class="btn-primary">📊 לוח הבקרה</a>
+                <a href="demo-8-players.html" class="btn-primary">🎲 דמו 8 שחקנים</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/setup-firestore.js"></script>
+    <script src="js/theme.js"></script>
+    
+    <script type="module">
+        import { auth } from './js/firebase-config.js';
+        import FirestoreSetup from './js/setup-firestore.js';
+
+        // Wait for auth and setup
+        auth.onAuthStateChanged((user) => {
+            const connectionStatus = document.getElementById('connection-status');
+            
+            if (user) {
+                connectionStatus.innerHTML = `
+                    <div class="dice" style="width: 16px; height: 16px;">✅</div>
+                    <span>מחובר כ-${user.displayName}</span>
+                `;
+                connectionStatus.className = 'status-indicator status-success';
+            } else {
+                connectionStatus.innerHTML = `
+                    <div class="dice" style="width: 16px; height: 16px;">❌</div>
+                    <span>לא מחובר - <a href="index.html" class="underline">התחבר כאן</a></span>
+                `;
+                connectionStatus.className = 'status-indicator status-error';
+            }
+        });
+
+        // Setup button handlers
+        document.getElementById('test-connection').addEventListener('click', async () => {
+            if (window.firestoreSetup) {
+                await window.firestoreSetup.testConnection();
+            }
+        });
+
+        document.getElementById('create-test-data').addEventListener('click', async () => {
+            if (window.firestoreSetup) {
+                await window.firestoreSetup.setupTestData();
+            }
+        });
+    </script>
+</body>
+</html>
