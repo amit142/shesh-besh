@@ -118,7 +118,7 @@ class TournamentManager {
 
     async loadTournament() {
         try {
-            // Try Firebase first, fallback to demo mode
+            // Load tournament from Firebase
             try {
                 const tournamentDoc = await getDoc(doc(db, 'tournaments', this.tournamentId));
                 
