@@ -118,7 +118,7 @@ class TournamentManager {
 
     async loadTournament() {
         try {
-            // Try Firebase first, fallback to demo mode
+            // Load tournament from Firebase
             try {
                 const tournamentDoc = await getDoc(doc(db, 'tournaments', this.tournamentId));
                 
@@ -138,8 +138,9 @@ class TournamentManager {
                 // Setup real-time listeners for Firebase mode
                 this.setupRealtimeListeners();
             } catch (firebaseError) {
-                console.warn('Firebase unavailable, using demo mode:', firebaseError);
-                this.loadDemoTournament();
+                console.error('Firebase error loading tournament:', firebaseError);
+                this.showError('שגיאה בטעינת הטורניר. אנא בדקו את החיבור לאינטרנט ונסו שוב.');
+                return;
             }
 
             // Update UI
@@ -154,227 +155,7 @@ class TournamentManager {
         }
     }
 
-    loadDemoTournament() {
-        // Demo tournaments data (same as in app.js)
-        const demoTournaments = {
-            'tournament-8-players': {
-                id: 'tournament-8-players',
-                name: 'טורניר 8 השחקנים הגדול',
-                status: 'active',
-                participants: [
-                    this.currentUser.uid, 'player-1', 'player-2', 'player-3',
-                    'player-4', 'player-5', 'player-6', 'player-7'
-                ],
-                maxParticipants: 8,
-                groupCount: 2,
-                playersPerGroup: 4,
-                code: 'PLAY8',
-                createdBy: this.currentUser.uid,
-                createdAt: new Date(),
-                startedAt: new Date()
-            },
-            'tournament-setup': {
-                id: 'tournament-setup',
-                name: 'טורניר בהגדרה - 6 שחקנים',
-                status: 'setup',
-                participants: [
-                    this.currentUser.uid, 'player-1', 'player-2', 'player-3', 'player-4', 'player-5'
-                ],
-                maxParticipants: 8,
-                groupCount: 2,
-                playersPerGroup: 4,
-                code: 'SETUP6',
-                createdBy: this.currentUser.uid,
-                createdAt: new Date()
-            },
-            'tournament-completed': {
-                id: 'tournament-completed',
-                name: 'טורניר שהושלם - אליפות המשרד',
-                status: 'completed',
-                participants: [
-                    'player-1', 'player-2', 'player-3', 'player-4'
-                ],
-                maxParticipants: 4,
-                groupCount: 1,
-                playersPerGroup: 4,
-                code: 'DONE4',
-                createdBy: 'player-1',
-                createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-                completedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-            }
-        };
 
-        this.tournament = demoTournaments[this.tournamentId];
-        
-        if (!this.tournament) {
-            this.showError('הטורניר לא נמצא');
-            setTimeout(() => window.location.href = 'app.html', 2000);
-            return;
-        }
-
-        // Demo players data
-        this.demoPlayers = {
-            [this.currentUser.uid]: {
-                uid: this.currentUser.uid,
-                displayName: this.currentUser.displayName || 'אתה',
-                photoURL: this.currentUser.photoURL || 'https://ui-avatars.com/api/?name=אתה&background=3b82f6&color=fff'
-            },
-            'player-1': {
-                uid: 'player-1',
-                displayName: 'אלי כהן',
-                photoURL: 'https://ui-avatars.com/api/?name=אלי+כהן&background=dc3545&color=fff'
-            },
-            'player-2': {
-                uid: 'player-2',
-                displayName: 'שרה לוי',
-                photoURL: 'https://ui-avatars.com/api/?name=שרה+לוי&background=28a745&color=fff'
-            },
-            'player-3': {
-                uid: 'player-3',
-                displayName: 'דוד ישראל',
-                photoURL: 'https://ui-avatars.com/api/?name=דוד+ישראל&background=ffc107&color=000'
-            },
-            'player-4': {
-                uid: 'player-4',
-                displayName: 'מירי אברהם',
-                photoURL: 'https://ui-avatars.com/api/?name=מירי+אברהם&background=17a2b8&color=fff'
-            },
-            'player-5': {
-                uid: 'player-5',
-                displayName: 'יוסי רוזן',
-                photoURL: 'https://ui-avatars.com/api/?name=יוסי+רוזן&background=6f42c1&color=fff'
-            },
-            'player-6': {
-                uid: 'player-6',
-                displayName: 'רחל גולד',
-                photoURL: 'https://ui-avatars.com/api/?name=רחל+גולד&background=fd7e14&color=fff'
-            },
-            'player-7': {
-                uid: 'player-7',
-                displayName: 'משה שלום',
-                photoURL: 'https://ui-avatars.com/api/?name=משה+שלום&background=20c997&color=fff'
-            }
-        };
-
-        // Demo matches data
-        this.demoMatches = [
-            // Group 1 matches (players 0-3)
-            {
-                id: 'match-1',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 0,
-                player1: this.currentUser.uid,
-                player2: 'player-1',
-                status: 'completed',
-                player1Score: 15,
-                player2Score: 12,
-                winner: this.currentUser.uid,
-                completedAt: new Date()
-            },
-            {
-                id: 'match-2',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 0,
-                player1: 'player-2',
-                player2: 'player-3',
-                status: 'completed',
-                player1Score: 18,
-                player2Score: 14,
-                winner: 'player-2',
-                completedAt: new Date()
-            },
-            {
-                id: 'match-3',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 0,
-                player1: this.currentUser.uid,
-                player2: 'player-2',
-                status: 'pending'
-            },
-            {
-                id: 'match-4',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 0,
-                player1: 'player-1',
-                player2: 'player-3',
-                status: 'pending'
-            },
-            {
-                id: 'match-5',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 0,
-                player1: this.currentUser.uid,
-                player2: 'player-3',
-                status: 'pending'
-            },
-            {
-                id: 'match-6',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 0,
-                player1: 'player-1',
-                player2: 'player-2',
-                status: 'pending'
-            },
-            
-            // Group 2 matches (players 4-7)
-            {
-                id: 'match-7',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 1,
-                player1: 'player-4',
-                player2: 'player-5',
-                status: 'completed',
-                player1Score: 16,
-                player2Score: 13,
-                winner: 'player-4',
-                completedAt: new Date()
-            },
-            {
-                id: 'match-8',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 1,
-                player1: 'player-6',
-                player2: 'player-7',
-                status: 'completed',
-                player1Score: 14,
-                player2Score: 17,
-                winner: 'player-7',
-                completedAt: new Date()
-            },
-            {
-                id: 'match-9',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 1,
-                player1: 'player-4',
-                player2: 'player-6',
-                status: 'pending'
-            },
-            {
-                id: 'match-10',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 1,
-                player1: 'player-5',
-                player2: 'player-7',
-                status: 'pending'
-            },
-            {
-                id: 'match-11',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 1,
-                player1: 'player-4',
-                player2: 'player-7',
-                status: 'pending'
-            },
-            {
-                id: 'match-12',
-                tournamentId: 'tournament-8-players',
-                groupIndex: 1,
-                player1: 'player-5',
-                player2: 'player-6',
-                status: 'pending'
-            }
-        ];
-    }
 
     setupRealtimeListeners() {
         // Tournament updates
@@ -447,23 +228,17 @@ class TournamentManager {
             // Load participant details
             for (const uid of this.tournament.participants) {
                 try {
-                    // Try Firebase first, fallback to demo data
-                    if (this.demoPlayers && this.demoPlayers[uid]) {
-                        // Use demo data
-                        this.participants.push(this.demoPlayers[uid]);
+                    // Try Firebase
+                    const userDoc = await getDoc(doc(db, 'users', uid));
+                    if (userDoc.exists()) {
+                        this.participants.push({ uid, ...userDoc.data() });
                     } else {
-                        // Try Firebase
-                        const userDoc = await getDoc(doc(db, 'users', uid));
-                        if (userDoc.exists()) {
-                            this.participants.push({ uid, ...userDoc.data() });
-                        } else {
-                            // Fallback for users not in users collection
-                            this.participants.push({
-                                uid,
-                                displayName: 'משתמש לא ידוע',
-                                photoURL: 'https://via.placeholder.com/40'
-                            });
-                        }
+                        // Fallback for users not in users collection
+                        this.participants.push({
+                            uid,
+                            displayName: 'משתמש לא ידוע',
+                            photoURL: 'https://via.placeholder.com/40'
+                        });
                     }
                 } catch (error) {
                     console.error('Error loading participant:', error);
@@ -548,30 +323,22 @@ class TournamentManager {
         if (this.tournament.status === 'setup') return;
 
         try {
-            // Try Firebase first, fallback to demo data
-            if (this.demoMatches) {
-                // Use demo matches
-                this.matches = this.demoMatches.filter(match => 
-                    match.tournamentId === this.tournamentId
-                );
-            } else {
-                // Try Firebase
-                const matchesQuery = query(
-                    collection(db, 'matches'),
-                    where('tournamentId', '==', this.tournamentId)
-                );
-                
-                const snapshot = await getDocs(matchesQuery);
-                this.matches = [];
-                
-                snapshot.forEach((doc) => {
-                    this.matches.push({ id: doc.id, ...doc.data() });
-                });
+            // Load matches from Firebase
+            const matchesQuery = query(
+                collection(db, 'matches'),
+                where('tournamentId', '==', this.tournamentId)
+            );
+            
+            const snapshot = await getDocs(matchesQuery);
+            this.matches = [];
+            
+            snapshot.forEach((doc) => {
+                this.matches.push({ id: doc.id, ...doc.data() });
+            });
 
-                // If no matches exist, generate them
-                if (this.matches.length === 0) {
-                    await this.generateMatches();
-                }
+            // If no matches exist, generate them
+            if (this.matches.length === 0) {
+                await this.generateMatches();
             }
 
             this.renderMatches();
